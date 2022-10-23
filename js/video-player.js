@@ -31,6 +31,8 @@ export class VideoPlayer {
     }
 
     play() {
+        this.movieDiv.speed(0.25);
+        this.movieDiv.volume(0);
         this.movieDiv.play();
     }
 
@@ -90,6 +92,7 @@ export class VideoPlayer {
     }
 
     scaleRectToBounds(rect, bounds) {
+        return [bounds.width, bounds.height];
         const rectRatio = rect.width / rect.height;
         const boundsRatio = bounds.width / bounds.height;
         if (rectRatio > boundsRatio) return [bounds.width, rect.height * (bounds.width / rect.width)]; // Fit to width if rect is more landscape than bounds

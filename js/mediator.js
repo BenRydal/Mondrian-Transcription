@@ -26,7 +26,7 @@ export class Mediator {
     updateProgram() {
         this.updateCursor();
         if (this.allDataLoaded()) {
-            this.videoPlayer.draw(this.gui.getVideoContainer());
+            this.videoPlayer.draw(this.gui.getFloorPlanContainer());
             if (this.isRecording) this.updateTranscription();
         } else {
             this.gui.drawWhiteBackground(); // to display centerline properly
@@ -46,6 +46,7 @@ export class Mediator {
      * NOTE: Always drawing mousePosLine creates smoother user experience when recording/drawing even when not recording actual data points
      */
     updateTranscription() {
+        //this.path.drawAllPaths(this.gui.getFloorPlanContainer(), this.floorPlan.getImg());
         this.path.drawMousePosLine(this.gui.getFloorPlanContainer()); // Don't call this within testSampleRate block
         if (this.path.curPath.pointArray.length === 0 || this.sampleData()) this.recordPoint();
     }
