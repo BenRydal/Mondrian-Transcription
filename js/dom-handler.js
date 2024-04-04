@@ -1,17 +1,20 @@
 export class DomHandler {
-
     constructor(mediator) {
         this.mediator = mediator;
     }
 
     handleIntroButton() {
-        const element = document.querySelector('.how-to-container');
-        if (element.style.display === 'none') element.style.display = 'block';
-        else element.style.display = 'none';
+        const element = document.querySelector(".how-to-container");
+        if (element.style.display === "none") element.style.display = "block";
+        else element.style.display = "none";
     }
 
     handleSaveButton() {
-        this.mediator.writeFile();
+        this.mediator.saveFile();
+    }
+
+    handleNewPathButton() {
+        this.mediator.startNewPath();
     }
 
     /**
@@ -21,7 +24,7 @@ export class DomHandler {
     handleFloorPlanButton() {
         const input = document.getElementById("input-floorplan");
         this.mediator.loadFloorPlan(URL.createObjectURL(input.files[0]));
-        input.value = ''; // reset input value so you can load same file again in browser
+        input.value = ""; // reset input value so you can load same file again in browser
     }
 
     /**
@@ -31,7 +34,7 @@ export class DomHandler {
     handleVideoButton() {
         const input = document.getElementById("input-video");
         this.mediator.loadVideo(URL.createObjectURL(input.files[0]));
-        input.value = ''; // reset input value so you can load same file again in browser
+        input.value = ""; // reset input value so you can load same file again in browser
     }
 
     handleClearButton() {

@@ -2,12 +2,11 @@
  * Mediator class coordinates calls from and across 4 other classes and P5 sketch
  */
 
-import { Path } from './path.js';
-import { SketchUI } from './sketch-ui.js';
-import { FloorPlan } from './floorplan.js';
-import { VideoPlayer } from './video-player.js';
+import { Path } from "./path.js";
+import { SketchUI } from "./sketch-ui.js";
+import { FloorPlan } from "./floorplan.js";
+import { VideoPlayer } from "./video-player.js";
 export class Mediator {
-
     constructor(sketch) {
         this.sk = sketch;
         this.path = new Path(sketch); // holds methods for drawing and recording path objects/data
@@ -122,7 +121,7 @@ export class Mediator {
      * Fast forwards video and path data if not at beginning or end of video
      */
     fastForward() {
-        if ((this.videoPlayer.getCurTime() > 1) && (this.videoPlayer.getCurTime() < (this.videoPlayer.getDuration() - this.jumpInSeconds))) {
+        if (this.videoPlayer.getCurTime() > 1 && this.videoPlayer.getCurTime() < this.videoPlayer.getDuration() - this.jumpInSeconds) {
             this.videoPlayer.fastForward(this.jumpInSeconds);
             this.path.fastForward(this.path.getCurEndPoint(), this.jumpInSeconds);
         }
@@ -159,7 +158,14 @@ export class Mediator {
         if (this.videoLoaded()) this.stopRecording();
     }
 
-    writeFile() {
+    saveFile() {
+        if (this.allDataLoaded() && this.path.curPath.pointArray.length > 0) {
+            this.sk.saveTable(this.writeTable(this.path.curPath.pointArray), "transcript", "csv");
+            //this.drawAllData();
+        }
+    }
+
+    startNewPath() {
         if (this.allDataLoaded() && this.path.curPath.pointArray.length > 0) {
             this.sk.saveTable(this.writeTable(this.path.curPath.pointArray), "transcript", "csv");
             this.path.addCurPathToList();
@@ -169,7 +175,7 @@ export class Mediator {
         }
     }
 
-    writeTable = function(pointArray) {
+    writeTable = function (pointArray) {
         const headers = ["time", "x", "y"]; // Column headers for outputted .CSV movement files
         let table = new p5.Table();
         table.addColumn(headers[0]);
@@ -182,11 +188,11 @@ export class Mediator {
             newRow.setNum(headers[2], point.fpYPos);
         }
         return table;
-    }
+    };
 
     /**
-     * NOTE: set timeout is necessary to prevent user from hitting fastforward too quickly to allow data 
-     * to update in program 
+     * NOTE: set timeout is necessary to prevent user from hitting fastforward too quickly to allow data
+     * to update in program
      */
     handleKeyPressed(keyValue) {
         if (this.allDataLoaded() && !this.isFastForwarding) {
@@ -194,8 +200,8 @@ export class Mediator {
             setTimeout(() => {
                 this.isFastForwarding = false;
             }, 250);
-            if (keyValue === 'r' || keyValue === 'R') this.rewind();
-            else if (keyValue === 'f' || keyValue === 'F') this.fastForward();
+            if (keyValue === "r" || keyValue === "R") this.rewind();
+            else if (keyValue === "f" || keyValue === "F") this.fastForward();
         }
     }
 
