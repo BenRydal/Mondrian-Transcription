@@ -33,6 +33,17 @@ const mondrian = new p5((sk) => {
         document.getElementById("button-save").addEventListener("click", sk.domHandler.handleSaveButton.bind(sk.domHandler));
         document.getElementById("button-new-path").addEventListener("click", sk.domHandler.handleNewPathButton.bind(sk.domHandler));
         document.getElementById("button-clear").addEventListener("click", sk.domHandler.handleClearButton.bind(sk.domHandler));
+
+        const speedSlider = document.getElementById("speed-slider");
+        speedSlider.oninput = function () {
+            if (sk.mediator.allDataLoaded() && sk.mediator.videoPlayer.getCurTime() > 1) {
+                const timeValueToSkipTo = sk.map(this.value, this.min, this.max, 0, sk.mediator.videoPlayer.getDuration());
+                console.log(timeValueToSkipTo, sk.mediator.videoPlayer.getCurTime());
+
+                if (timeValueToSkipTo > sk.mediator.videoPlayer.getCurTime()) sk.mediator.fastForward(timeValueToSkipTo - sk.mediator.videoPlayer.getCurTime());
+                else sk.mediator.rewind(sk.mediator.videoPlayer.getCurTime() - timeValueToSkipTo);
+            }
+        };
     };
 
     /**

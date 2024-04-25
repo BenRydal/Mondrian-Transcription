@@ -103,9 +103,9 @@ export class Mediator {
      * Coordinates rewinding of video, erasing of curPath data and updating display
      * If video has just started, rewind to 0
      */
-    rewind() {
+    rewind(timeValue) {
         if (this.videoPlayer.getCurTime() > this.jumpInSeconds) {
-            const rewindToTime = this.path.getCurEndPoint().tPos - this.jumpInSeconds; // set time to rewind to based on last value in list
+            const rewindToTime = this.path.getCurEndPoint().tPos - timeValue; // set time to rewind to based on last value in list
             this.path.rewind(rewindToTime);
             this.videoPlayer.rewind(rewindToTime);
         } else {
@@ -120,10 +120,10 @@ export class Mediator {
     /**
      * Fast forwards video and path data if not at beginning or end of video
      */
-    fastForward() {
-        if (this.videoPlayer.getCurTime() > 1 && this.videoPlayer.getCurTime() < this.videoPlayer.getDuration() - this.jumpInSeconds) {
-            this.videoPlayer.fastForward(this.jumpInSeconds);
-            this.path.fastForward(this.path.getCurEndPoint(), this.jumpInSeconds);
+    fastForward(timeValue) {
+        if (this.videoPlayer.getCurTime() > 1 && this.videoPlayer.getCurTime() < this.videoPlayer.getDuration() - timeValue) {
+            this.videoPlayer.fastForward(timeValue);
+            this.path.fastForward(this.path.getCurEndPoint(), timeValue);
         }
     }
 
@@ -200,8 +200,8 @@ export class Mediator {
             setTimeout(() => {
                 this.isFastForwarding = false;
             }, 250);
-            if (keyValue === "r" || keyValue === "R") this.rewind();
-            else if (keyValue === "f" || keyValue === "F") this.fastForward();
+            if (keyValue === "r" || keyValue === "R") this.rewind(this.jumpInSeconds);
+            else if (keyValue === "f" || keyValue === "F") this.fastForward(this.jumpInSeconds);
         }
     }
 

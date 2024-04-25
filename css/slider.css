@@ -1,0 +1,47 @@
+input.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10%; /* Adjust as needed */
+    height: 5px; /* Adjust as needed */
+    background-color: black; /* Slider background */
+    margin: 12px; /* Fixed missing semicolon */
+    margin-left: 10px; /* Slider margin from the left */
+}
+
+input.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px; /* Thumb width */
+    height: 15px; /* Thumb height */
+    background-color: black; /* Thumb color */
+    cursor: pointer;
+    border-radius: 50%; /* Makes the thumb circular */
+}
+
+input.slider::-moz-range-thumb {
+    width: 15px; /* Thumb width */
+    height: 15px; /* Thumb height */
+    background-color: black; /* Thumb color */
+    cursor: pointer;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 50%; /* Makes the thumb circular */
+}
+
+#speed-slider-value, #dot-slider-value {
+    font-size: 16px; /* Example size */
+    color: black; /* Text color */
+}
+
+label {
+    color: black; /* Or any color that stands out against your background */
+    font-size: 16px; /* Optional: Adjust size as needed */
+}
+
+.slider {
+    display: block; /* Makes the slider take the full width of the container */
+    margin: 0 auto 10px; /* Centers the slider and adds space below it */
+}
+#sliderValue {
+    display: block; /* Positions the text on a new line under the slider */
+}
