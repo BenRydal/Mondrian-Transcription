@@ -1,30 +1,38 @@
-# Mondrian Transcription Software
+# sv
 
-Hi there! This is a repository for Mondrian Transcription Software, an open-source tool to transcribe fine-grained movement data from video by efficiently tracing the movement of people or things over floor plan representations to generate text files of positioning data — essentially, a transcript of movement.
+Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
 
-Mondrian Transcription features:
+## Creating a project
 
-- **Browser-based:** Everything in your browser.
-- **Movement transcription from video:** One of only a handful of tools built to manually transcribe movement from video.
-- **Movement transcription at different scales:** Transcribe movement at the scale of gesture, classroom interaction, or larger scales.
-- **Meaningful and efficient transcription:** Features such as fast-forwarding and re-winding provide meaningful and efficient ways to qualitatively transcribe movement data that are lost with automated methods.
-- **Visualize movement transcription output:** Output data files can be visualized in software such as the [Interaction Geography Slicer](https://www.benrydal.com/software/igs).
-- **Future features:** We are rapidly developing and expanding features and collaborators in this effort are welcome.
+If you're seeing this, you've probably already done this step. Congrats!
 
-![repo](./images/cover.png)
+```bash
+# create a new project in the current directory
+npx sv create
 
-## Get started
+# create a new project in my-app
+npx sv create my-app
+```
 
-- For more information on how to use this tool, please visit [Mondrian Transcription](https://www.benrydal.com/software/mondrian-transcription)
+## Developing
 
-## Reporting bugs & contributing code
+Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
 
-- We are rapidly developing and expanding features of this tool and collaborators in this effort are welcome. If you have found a bug, you can file it under the “issues” tab. You can also request new features here.
+```bash
+npm run dev
 
-## Credits
+# or start the server and open the app in a new browser tab
+npm run dev -- --open
+```
 
-This work is supported by the National Science Foundation. Classroom science lesson data is made possible by the researchers and teachers who created The Third International Mathematics and Science Study (TIMSS) 1999 Video Study. Mondrian Transcription software was originally developed by Ben Rydal Shapiro at Vanderbilt University as part of his dissertation titled Interaction Geography & the Learning Sciences. Copyright (C) 2018 Ben Rydal Shapiro, and contributors. To reference or read more about this work please see [HERE](https://etd.library.vanderbilt.edu/available/etd-03212018-140140/unrestricted/Shapiro_Dissertation.pdf)
+## Building
 
-## License
+To create a production version of your app:
 
-This software is written in JavaScript and p5.js and licensed under the GNU General Public License Version 2.0. See the GNU General Public License included with this software for more details.
+```bash
+npm run build
+```
+
+You can preview the production build with `npm run preview`.
+
+> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
