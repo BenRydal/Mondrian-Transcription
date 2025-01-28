@@ -11,7 +11,7 @@ Mondrian Transcription features:
 - **Visualize movement transcription output:** Output data files can be visualized in software such as the [Interaction Geography Slicer](https://www.benrydal.com/software/igs).
 - **Future features:** We are rapidly developing and expanding features and collaborators in this effort are welcome.
 
-![repo](./images/cover.png)
+![repo](./docs/images/cover.png)
 
 ## Get started
 
