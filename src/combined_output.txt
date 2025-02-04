@@ -1,0 +1,522 @@
+=== ./app.d.ts ===
+import "unplugin-icons/types/svelte";
+
+// See https://svelte.dev/docs/kit/types#app.d.ts
+// for information about these interfaces
+declare global {
+  namespace App {
+    // interface Error {}
+    // interface Locals {}
+    // interface PageData {}
+    // interface PageState {}
+    // interface Platform {}
+  }
+}
+
+export {};
+-e 
+
+=== ./lib/p5/types/sketch.ts ===
+import type p5 from "p5";
+
+export interface Point {
+  x: number;
+  y: number;
+  time: number;
+  pathId: number;
+}
+
+export interface P5State {
+  videoElement: p5.Element | null;
+  imageElement: p5.Element | null;
+  drawingPoints: Point[];
+  isDrawing: boolean;
+  currentPathId: number;
+}
+-e 
+
+=== ./lib/p5/features/video.ts ===
+import type p5 from "p5";
+import { drawingState } from "../../stores/drawingState";
+import { get } from "svelte/store";
+import { drawingConfig } from "../../stores/drawingConfig";
+
+export function setupVideo(p5: p5) {
+  const setVideo = (video: HTMLVideoElement) => {
+    const p5Vid = p5.createVideo([video.src]);
+
+    p5Vid.hide();
+
+    p5Vid.elt.onplay = () =>
+      drawingState.update((state) => ({ ...state, isVideoPlaying: true }));
+    p5Vid.elt.onpause = () =>
+      drawingState.update((state) => ({ ...state, isVideoPlaying: false }));
+
+    return p5Vid;
+  };
+
+  const updateVideoTime = (videoElement: p5.Element, lastVideoTime: number) => {
+    if (videoElement) {
+      const currentTime = (videoElement as any).elt.currentTime;
+      if (currentTime !== lastVideoTime) {
+        drawingState.update((state) => ({ ...state, videoTime: currentTime }));
+        return currentTime;
+      }
+    }
+    return lastVideoTime;
+  };
+
+  const drawVideo = (p5: p5, videoElement: p5.Element) => {
+    const config = get(drawingConfig);
+    const splitX = (p5.width * config.splitPosition) / 100;
+    const aspectRatio =
+      videoElement.elt.videoWidth / videoElement.elt.videoHeight;
+    const displayHeight = Math.min(p5.height, splitX / aspectRatio);
+    const yOffset = (p5.height - displayHeight) / 2;
+
+    p5.image(videoElement, 0, yOffset, splitX, displayHeight);
+  };
+
+  return {
+    setVideo,
+    updateVideoTime,
+    drawVideo,
+  };
+}
+-e 
+
+=== ./lib/p5/features/drawing.ts ===
+import type p5 from "p5";
+import type { Point } from "../types/sketch";
+import { get } from "svelte/store";
+import {
+  drawingState,
+  addPointToCurrentPath,
+  toggleDrawing,
+} from "../../stores/drawingState";
+import { drawingConfig } from "../../stores/drawingConfig";
+import {
+  isInDrawableArea,
+  convertToImageCoordinates,
+} from "../../utils/drawingUtils";
+
+class TimeBasedSampler {
+  private lastSampleTime: number = 0;
+
+  constructor(private sampleInterval: number) {}
+
+  shouldSample(currentTime: number): boolean {
+    if (currentTime - this.lastSampleTime >= this.sampleInterval) {
+      this.lastSampleTime = currentTime;
+      return true;
+    }
+    return false;
+  }
+
+  reset() {
+    this.lastSampleTime = 0;
+  }
+}
+
+export function setupDrawing(p5: p5) {
+  const sampler = new TimeBasedSampler(get(drawingConfig).pollingRate / 1000);
+
+  drawingConfig.subscribe((config) => {
+    sampler.reset();
+  });
+
+  const addCurrentPoint = () => {
+    const state = get(drawingState);
+    if (!state.shouldTrackMouse) return;
+
+    if (isInDrawableArea(p5, p5.mouseX, p5.mouseY)) {
+      if (sampler.shouldSample(state.videoTime)) {
+        const coords = convertToImageCoordinates(p5, p5.mouseX, p5.mouseY);
+        const point: Point = {
+          ...coords,
+          time: state.videoTime,
+          pathId: state.currentPathId,
+        };
+        addPointToCurrentPath(point);
+      }
+    }
+  };
+
+  const handleMousePressed = (videoElement?: HTMLVideoElement) => {
+    if (isInDrawableArea(p5, p5.mouseX, p5.mouseY)) {
+      if (!get(drawingState).shouldTrackMouse) {
+        sampler.reset();
+      }
+      toggleDrawing(videoElement);
+    }
+  };
+
+  const handleDrawing = () => {
+    const state = get(drawingState);
+    if (state.shouldTrackMouse) {
+      addCurrentPoint();
+    }
+  };
+
+  return {
+    handleMousePressed,
+    handleDrawing,
+  };
+}
+
+export function drawPaths(p5: p5) {
+  const state = get(drawingState);
+  const config = get(drawingConfig);
+  const splitX = (p5.width * config.splitPosition) / 100;
+  const drawingAreaWidth = p5.width - splitX;
+  const drawingAreaHeight = p5.height;
+  const ENDPOINT_MARKER_SIZE = 15;
+
+  p5.push();
+
+  state.paths.forEach((path) => {
+    p5.strokeWeight(config.strokeWeight);
+    p5.stroke(path.color);
+    p5.noFill();
+
+    if (path.points.length > 1) {
+      p5.beginShape();
+      path.points.forEach((point) => {
+        const displayX =
+          splitX + (point.x * drawingAreaWidth) / state.imageWidth;
+        const displayY = (point.y * drawingAreaHeight) / state.imageHeight;
+        p5.vertex(displayX, displayY);
+      });
+      p5.endShape();
+
+      if (path.pathId === state.currentPathId && !state.shouldTrackMouse) {
+        const lastPoint = path.points[path.points.length - 1];
+        const displayX =
+          splitX + (lastPoint.x * drawingAreaWidth) / state.imageWidth;
+        const displayY = (lastPoint.y * drawingAreaHeight) / state.imageHeight;
+
+        const pulseScale = (Math.sin(p5.frameCount * 0.05) + 1) * 0.25 + 0.5;
+
+        p5.noStroke();
+        for (let i = 4; i > 0; i--) {
+          const alpha = 50 - i * 10;
+          p5.fill(255, 0, 0, alpha);
+          const size = ENDPOINT_MARKER_SIZE * (1.5 + i * 0.5) * pulseScale;
+          p5.circle(displayX, displayY, size);
+        }
+
+        p5.fill(255, 0, 0, 200);
+        p5.circle(displayX, displayY, ENDPOINT_MARKER_SIZE * pulseScale);
+
+        p5.fill(255);
+        p5.circle(displayX, displayY, ENDPOINT_MARKER_SIZE * 0.5 * pulseScale);
+      }
+    } else if (path.points.length === 1) {
+      const point = path.points[0];
+      const displayX = splitX + (point.x * drawingAreaWidth) / state.imageWidth;
+      const displayY = (point.y * drawingAreaHeight) / state.imageHeight;
+      p5.point(displayX, displayY);
+    }
+  });
+
+  p5.pop();
+}
+-e 
+
+=== ./lib/utils/drawingUtils.ts ===
+import type p5 from "p5";
+import { get } from "svelte/store";
+import { drawingConfig } from "../stores/drawingConfig";
+import { drawingState } from "../stores/drawingState";
+
+export function isInDrawableArea(p5: p5, x: number, y: number): boolean {
+  const config = get(drawingConfig);
+  const splitX = (p5.width * config.splitPosition) / 100;
+
+  return x > splitX && x < p5.width && y > 0 && y < p5.height;
+}
+
+export function convertToImageCoordinates(p5: p5, x: number, y: number) {
+  const config = get(drawingConfig);
+  const state = get(drawingState);
+  const splitX = (p5.width * config.splitPosition) / 100;
+
+  const constrainedX = p5.constrain(x, splitX, p5.width);
+  const constrainedY = p5.constrain(y, 0, p5.height);
+
+  const drawingAreaWidth = p5.width - splitX;
+  const drawingAreaHeight = p5.height;
+
+  const imageX =
+    ((constrainedX - splitX) * state.imageWidth) / drawingAreaWidth;
+  const imageY = (constrainedY * state.imageHeight) / drawingAreaHeight;
+
+  return {
+    x: imageX,
+    y: imageY,
+  };
+}
+-e 
+
+=== ./lib/stores/drawingState.ts ===
+import { writable } from "svelte/store";
+import type p5 from "p5";
+import type { Point } from "../p5/types/sketch";
+
+export interface PathData {
+  points: Point[];
+  color: string;
+  pathId: number;
+}
+
+export interface DrawingState {
+  isVideoPlaying: boolean;
+  isDrawing: boolean;
+  shouldTrackMouse: boolean;
+  paths: PathData[];
+  imageWidth: number;
+  imageHeight: number;
+  videoTime: number;
+  imageElement: p5.Image | null;
+  currentPathId: number;
+  isJumping: boolean;
+}
+
+const initialState: DrawingState = {
+  isVideoPlaying: false,
+  isDrawing: false,
+  shouldTrackMouse: false,
+  paths: [],
+  imageWidth: 0,
+  imageHeight: 0,
+  videoTime: 0,
+  imageElement: null,
+  currentPathId: 0,
+  isJumping: false,
+};
+
+const JUMP_SECONDS = 5;
+const JUMP_COOLDOWN = 250;
+
+export function handleTimeJump(
+  forward: boolean,
+  videoElement?: HTMLVideoElement
+) {
+  drawingState.update((state) => {
+    if (state.isJumping || !videoElement) return state;
+
+    const currentTime = state.videoTime;
+    let newTime: number;
+
+    if (forward) {
+      // Fast forward
+      newTime = Math.min(currentTime + JUMP_SECONDS, videoElement.duration);
+      videoElement.currentTime = newTime;
+
+      // Find current path
+      const currentPathIndex = state.paths.findIndex(
+        (p) => p.pathId === state.currentPathId
+      );
+      if (currentPathIndex === -1) return state;
+
+      const updatedPaths = [...state.paths];
+      const currentPath = updatedPaths[currentPathIndex];
+
+      // Get the last point before the jump
+      const lastPoint = currentPath.points[currentPath.points.length - 1];
+      if (!lastPoint) return state;
+
+      // Add points at regular intervals during the jump
+      const samplingRate = get(drawingConfig).pollingRate / 1000; // Convert to seconds
+      const updatedPoints = [...currentPath.points];
+
+      for (
+        let t = currentTime + samplingRate;
+        t <= newTime;
+        t += samplingRate
+      ) {
+        updatedPoints.push({
+          x: lastPoint.x,
+          y: lastPoint.y,
+          time: t,
+          pathId: state.currentPathId,
+        });
+      }
+
+      updatedPaths[currentPathIndex] = {
+        ...currentPath,
+        points: updatedPoints,
+      };
+
+      return {
+        ...state,
+        isJumping: true,
+        videoTime: newTime,
+        paths: updatedPaths,
+      };
+    } else {
+      newTime = Math.max(currentTime - JUMP_SECONDS, 0);
+      videoElement.currentTime = newTime;
+
+      const currentPathIndex = state.paths.findIndex(
+        (p) => p.pathId === state.currentPathId
+      );
+      if (currentPathIndex === -1) return state;
+
+      const updatedPaths = [...state.paths];
+      const currentPath = updatedPaths[currentPathIndex];
+
+      const updatedPoints = currentPath.points.filter(
+        (point) => point.time <= newTime
+      );
+      updatedPaths[currentPathIndex] = {
+        ...currentPath,
+        points: updatedPoints,
+      };
+
+      if (state.shouldTrackMouse) {
+        videoElement.pause();
+      }
+
+      return {
+        ...state,
+        isJumping: true,
+        shouldTrackMouse: false,
+        isDrawing: false,
+        isVideoPlaying: false,
+        videoTime: newTime,
+        paths: updatedPaths,
+      };
+    }
+  });
+
+  setTimeout(() => {
+    drawingState.update((state) => ({
+      ...state,
+      isJumping: false,
+    }));
+  }, JUMP_COOLDOWN);
+}
+
+export const drawingState = writable<DrawingState>(initialState);
+
+export function toggleDrawing(videoElement?: HTMLVideoElement) {
+  drawingState.update((state) => {
+    const newShouldTrack = !state.shouldTrackMouse;
+
+    if (videoElement) {
+      try {
+        if (newShouldTrack) {
+          const playPromise = videoElement.play();
+          if (playPromise !== undefined) {
+            playPromise.catch((error) => {
+              console.error("Error playing video:", error);
+            });
+          }
+        } else {
+          videoElement.pause();
+        }
+      } catch (error) {
+        console.error("Error handling video:", error);
+      }
+    }
+
+    return {
+      ...state,
+      shouldTrackMouse: newShouldTrack,
+      isDrawing: newShouldTrack,
+      isVideoPlaying: newShouldTrack,
+    };
+  });
+}
+
+export function createNewPath(color: string) {
+  drawingState.update((state) => {
+    const newPathId = state.currentPathId + 1;
+    return {
+      ...state,
+      currentPathId: newPathId,
+      paths: [
+        ...state.paths,
+        {
+          points: [],
+          color,
+          pathId: newPathId,
+        },
+      ],
+    };
+  });
+}
+
+export function addPointToCurrentPath(point: Point) {
+  drawingState.update((state) => {
+    if (!state.shouldTrackMouse) return state;
+
+    const currentPathIndex = state.paths.findIndex(
+      (p) => p.pathId === state.currentPathId
+    );
+
+    if (currentPathIndex === -1) {
+      const colors = [
+        "#FF0000",
+        "#00FF00",
+        "#0000FF",
+        "#FFFF00",
+        "#FF00FF",
+        "#00FFFF",
+      ];
+      const newColor = colors[state.paths.length % colors.length];
+      createNewPath(newColor);
+      return state;
+    }
+
+    const updatedPaths = [...state.paths];
+    updatedPaths[currentPathIndex] = {
+      ...updatedPaths[currentPathIndex],
+      points: [...updatedPaths[currentPathIndex].points, point],
+    };
+
+    return {
+      ...state,
+      paths: updatedPaths,
+    };
+  });
+}
+-e 
+
+=== ./lib/stores/drawingConfig.ts ===
+import { writable } from "svelte/store";
+
+interface DrawingConfig {
+  strokeWeight: number;
+  strokeColor: string;
+  splitPosition: number; // percentage (0-100)
+  pollingRate: number; // milliseconds
+}
+
+const defaultConfig: DrawingConfig = {
+  strokeWeight: 5,
+  strokeColor: "#000000",
+  splitPosition: 50,
+  pollingRate: 16,
+};
+
+export const drawingConfig = writable<DrawingConfig>(defaultConfig);
+
+export const updateStrokeWeight = (weight: number) => {
+  drawingConfig.update((config) => ({ ...config, strokeWeight: weight }));
+};
+
+export const updateStrokeColor = (color: string) => {
+  drawingConfig.update((config) => ({ ...config, strokeColor: color }));
+};
+
+export const updateSplitPosition = (position: number) => {
+  drawingConfig.update((config) => ({ ...config, splitPosition: position }));
+};
+
+export const updatePollingRate = (rate: number) => {
+  drawingConfig.update((config) => ({ ...config, pollingRate: rate }));
+};
+-e 
+
